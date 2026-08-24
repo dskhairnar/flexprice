@@ -2,6 +2,7 @@ package dto
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/flexprice/flexprice/internal/domain/creditgrant"
 	"github.com/flexprice/flexprice/internal/domain/entitlement"
@@ -200,12 +201,69 @@ type SynchronizationSummary struct {
 
 // PlanPriceSyncStatusResponse reports how many of a plan's subscriptions are
 // still behind the plan's current price sequence (i.e. not yet reconciled by
-// a sync run). UnsyncedSubscriptionCount == 0 means every eligible
+// a sync run). GetUnsyncedSubscriptionCount() == 0 means every eligible
 // subscription is caught up and a sync run would be a no-op.
 type PlanPriceSyncStatusResponse struct {
+	currentSequence           int64
+	unsyncedSubscriptionCount int64
+	synced                    bool
+}
+
+// NewPlanPriceSyncStatusResponse builds a PlanPriceSyncStatusResponse.
+func NewPlanPriceSyncStatusResponse(currentSequence, unsyncedSubscriptionCount int64, synced bool) *PlanPriceSyncStatusResponse {
+	return &PlanPriceSyncStatusResponse{
+		currentSequence:           currentSequence,
+		unsyncedSubscriptionCount: unsyncedSubscriptionCount,
+		synced:                    synced,
+	}
+}
+
+func (r *PlanPriceSyncStatusResponse) GetCurrentSequence() int64 {
+	if r == nil {
+		return 0
+	}
+	return r.currentSequence
+}
+
+func (r *PlanPriceSyncStatusResponse) GetUnsyncedSubscriptionCount() int64 {
+	if r == nil {
+		return 0
+	}
+	return r.unsyncedSubscriptionCount
+}
+
+func (r *PlanPriceSyncStatusResponse) IsSynced() bool {
+	if r == nil {
+		return false
+	}
+	return r.synced
+}
+
+// planPriceSyncStatusResponseJSON mirrors PlanPriceSyncStatusResponse's
+// private fields for JSON (de)serialization.
+type planPriceSyncStatusResponseJSON struct {
 	CurrentSequence           int64 `json:"current_sequence"`
 	UnsyncedSubscriptionCount int64 `json:"unsynced_subscription_count"`
 	Synced                    bool  `json:"synced"`
+}
+
+func (r *PlanPriceSyncStatusResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(planPriceSyncStatusResponseJSON{
+		CurrentSequence:           r.GetCurrentSequence(),
+		UnsyncedSubscriptionCount: r.GetUnsyncedSubscriptionCount(),
+		Synced:                    r.IsSynced(),
+	})
+}
+
+func (r *PlanPriceSyncStatusResponse) UnmarshalJSON(data []byte) error {
+	var v planPriceSyncStatusResponseJSON
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	r.currentSequence = v.CurrentSequence
+	r.unsyncedSubscriptionCount = v.UnsyncedSubscriptionCount
+	r.synced = v.Synced
+	return nil
 }
 
 // ClonePlanRequest represents the request to clone a plan

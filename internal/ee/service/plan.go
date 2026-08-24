@@ -809,9 +809,7 @@ func (s *planService) planPriceSyncStatus(ctx context.Context, planID string) (*
 	}
 
 	if targetSeq == 0 {
-		return &dto.PlanPriceSyncStatusResponse{
-			Synced: true,
-		}, nil
+		return dto.NewPlanPriceSyncStatusResponse(0, 0, true), nil
 	}
 
 	unsyncedCount, err := s.PlanPriceSyncRepo.CountUnsyncedSubscriptions(ctx, planID, targetSeq)
@@ -819,11 +817,7 @@ func (s *planService) planPriceSyncStatus(ctx context.Context, planID string) (*
 		return nil, err
 	}
 
-	return &dto.PlanPriceSyncStatusResponse{
-		CurrentSequence:           targetSeq,
-		UnsyncedSubscriptionCount: unsyncedCount,
-		Synced:                    unsyncedCount == 0,
-	}, nil
+	return dto.NewPlanPriceSyncStatusResponse(targetSeq, unsyncedCount, unsyncedCount == 0), nil
 }
 
 func createPlanLineItem(
